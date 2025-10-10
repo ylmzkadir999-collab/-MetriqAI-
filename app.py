@@ -12,7 +12,12 @@ user_package = st.sidebar.selectbox(
     ['basic', 'pro', 'premium'],
     index=2  # Default: premium
 )
-
+summary = {
+    'total_revenue': df['net_tutar'].sum(),
+    'daily_average': df.groupby('tarih')['net_tutar'].sum().mean(),
+    'transactions': len(df)
+}
+report = create_report(summary)  #
 st.sidebar.markdown(f"""
 ### Paket Özellikleri
 

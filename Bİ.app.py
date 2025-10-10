@@ -1,6 +1,5 @@
-"""
-app.py - MetriqAI Ana Uygulama (V2.0)
-"""
+"""app.py - MetriqAI Ana Uygulama (V2.0)"""
+
 
 import streamlit as st
 import os

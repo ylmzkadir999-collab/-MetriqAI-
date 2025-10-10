@@ -1,4 +1,4 @@
-/ (repo kökü)
+
 ├─ app.py                # ANA dosya (Streamlit Main file)
 ├─ data_analysis.py
 ├─ reporting.py
@@ -6,7 +6,8 @@
 ├─ maps.py
 ├─ config.py
 ├─ requirements.txt
-└─ assets/ (varsa görseller)streamlit>=1.28.0
+└─ assets/ (varsa görseller)streamlit>=1.28.0import streamlit as st
+from data_analysis import SalesAnalyzer
 pandas>=2.0.0
 numpy>=1.24.0
 matplotlib>=3.7.0

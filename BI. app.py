@@ -88,7 +88,7 @@ uploaded_file = st.file_uploader(
 if uploaded_file:
     try:
         # Veriyi yükle
-        analyzer = SalesAnalyzer.load_data(uploaded_file)
+        analyzer = salesAnalyzer.load_data(uploaded_file)
 
         # İşlem animasyonu göster (illüzyon!)  
         simulate_processing(selected_package)  

@@ -1,125 +1,197 @@
-import sys, os
-sys.path.append(os.path.dirname(__file__))
-import warnings
-import sys
 import streamlit as st
 import pandas as pd
-import os
-import glob
-import zipfile
-from io import BytesIO
+from datetime import datetime
 
-# --- Hata bastırıcı ve çakal koruması ---
-warnings.filterwarnings("ignore", category=UserWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
 
-def silence_streamlit_exceptions(exc_type, exc_value, traceback):
-    if exc_type.__name__ in ["RuntimeError", "ValueError", "Exception"]:
-        print(f"[MetriqAI Silent Mode] Caught harmless error: {exc_value}")
-        return True
-    return False
-
-sys.excepthook = silence_streamlit_exceptions
-
-# --- Modüller ---
-from data_analysis import SalesAnalyzer
-from reporting import (
-    generate_graphs, ai_summary, build_pdf,
-    build_docx, build_ppt, save_excel
-)
-from config import APP_NAME, PACKAGES, OPENAI_API_KEY
-from ui_components import (
-    load_custom_css, render_hero, render_package_selector,
-    render_team_section, simulate_processing, render_footer
-)
-from maps import (
-    create_turkey_heatmap, create_world_map,
-    create_interactive_bar_chart, create_time_series_chart
-)
-
-# --- Sayfa Ayarları ---
-st.set_page_config(
-    page_title=f"{APP_NAME} Dashboard",
-    layout="wide",
-    page_icon="⚡",
-    initial_sidebar_state="expanded"
-)
-
-# --- UI ---
-load_custom_css()
-selected_package = render_package_selector()
-package_features = PACKAGES[selected_package]['features']
-render_team_section()
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📞 Contact")
-st.sidebar.markdown("📧 insights@metriq.ai")
-st.sidebar.markdown("🌐 metriq.ai")
-
-render_hero()
-
-# --- Veri Yükleme ---
-st.markdown("### 📂 Upload Your Data")
-uploaded_file = st.file_uploader(
-    "Drop your Excel or CSV file here",
-    type=["xlsx", "xls", "csv"],
-    help="Upload sales data for instant AI-powered analysis"
-)
-
-# --- Veri Analizi ---
-if uploaded_file:
+def generate_summary_report(df):
+    """
+    DataFrame'den özet rapor oluştur
+    """
     try:
-        analyzer = SalesAnalyzer.load_data(uploaded_file)
-        simulate_processing(selected_package)
-        kpis = analyzer.compute_kpis()
-        st.markdown("---")
-
-        col1, col2, col3, col4 = st.columns(4)
-        with col1: st.metric("💰 Total Revenue", f"{kpis['total']:,.0f} TL")
-        with col2: st.metric("📊 Daily Average", f"{kpis['avg']:,.0f} TL")
-        with col3: st.metric("📈 Week-over-Week", f"{kpis['wow']:.1f}%" if not pd.isna(kpis['wow']) else "N/A")
-        with col4: st.metric("🔢 Total Transactions", f"{len(analyzer.df):,}")
-
-        st.markdown("---")
-
-        # --- AI Summary ---
-        if package_features['ai_summary']:
-            if OPENAI_API_KEY:
-                with st.spinner("AI is analyzing your data..."):
-                    summary = ai_summary(analyzer.get_kpi_text())
-                st.success("✅ AI Analysis Complete!")
-                st.markdown(f"<div style='background:rgba(0,191,255,0.1);padding:15px;border-radius:10px;'>{summary}</div>", unsafe_allow_html=True)
-            else:
-                st.warning("⚠️ No OpenAI API key found in .env file.")
+        # Summary verilerini hesapla
+        total_revenue = df['net_tutar'].sum()
+        daily_average = df.groupby('tarih')['net_tutar'].sum().mean()
+        total_transactions = len(df)
+        
+        # Tarih aralığı
+        start_date = df['tarih'].min()
+        end_date = df['tarih'].max()
+        
+        # Haftalık büyüme hesapla
+        df_sorted = df.sort_values('tarih')
+        if len(df_sorted) >= 7:
+            last_week = df_sorted.tail(7)['net_tutar'].sum()
+            prev_week = df_sorted.iloc[-14:-7]['net_tutar'].sum() if len(df_sorted) >= 14 else last_week
+            wow_growth = ((last_week - prev_week) / prev_week * 100) if prev_week > 0 else 0
         else:
-            summary = "AI analysis not available in Basic plan."
-
-        # --- Charts ---
-        st.markdown("### 📊 Data Visualization")
-        if package_features['interactive_charts']:
-            st.plotly_chart(create_time_series_chart(analyzer.df), use_container_width=True)
+            wow_growth = 0
+        
+        # En yüksek gelirli şehir
+        if 'sehir' in df.columns:
+            top_city = df.groupby('sehir')['net_tutar'].sum().idxmax()
+            top_city_revenue = df.groupby('sehir')['net_tutar'].sum().max()
         else:
-            graphs = generate_graphs(kpis)
-            st.image(graphs["daily"], caption="📈 Daily Revenue Trend")
+            top_city = "N/A"
+            top_city_revenue = 0
+        
+        # En yüksek gelirli kategori
+        if 'kategori' in df.columns:
+            top_category = df.groupby('kategori')['net_tutar'].sum().idxmax()
+            top_category_revenue = df.groupby('kategori')['net_tutar'].sum().max()
+        else:
+            top_category = "N/A"
+            top_category_revenue = 0
+        
+        # Rapor metni oluştur
+        report = f"""
+╔══════════════════════════════════════════════════════════════╗
+║              MetriqAI Analytics - Özet Rapor                 ║
+╚══════════════════════════════════════════════════════════════╝
 
-        # --- Reports ---
-        st.markdown("### 📥 Download Reports")
-        graphs = generate_graphs(kpis)
-        pdf_path = build_pdf(summary, kpis, graphs, "metriqAI_report.pdf")
-        excel_path = save_excel(analyzer.df, "data_clean.xlsx")
+📅 RAPOR TARİHİ: {datetime.now().strftime('%d.%m.%Y %H:%M')}
+📊 VERİ DÖNEMİ: {start_date} - {end_date}
 
-        col_a, col_b = st.columns(2)
-        with col_a:
-            with open(pdf_path, "rb") as f:
-                st.download_button("📑 Download PDF", f, file_name="metriqAI_report.pdf")
-        with col_b:
-            with open(excel_path, "rb") as f:
-                st.download_button("📊 Download Excel", f, file_name="data_clean.xlsx")
+═══════════════════════════════════════════════════════════════
 
+💰 GELİR ÖZETİ
+───────────────────────────────────────────────────────────────
+   Toplam Gelir          : {total_revenue:,.2f} TL
+   Günlük Ortalama       : {daily_average:,.2f} TL
+   Haftalık Büyüme       : {wow_growth:,.1f}%
+
+═══════════════════════════════════════════════════════════════
+
+📦 İŞLEM BİLGİLERİ
+───────────────────────────────────────────────────────────────
+   Toplam İşlem Sayısı   : {total_transactions:,}
+   İşlem Başı Ortalama   : {(total_revenue/total_transactions):,.2f} TL
+
+═══════════════════════════════════════════════════════════════
+
+🏆 EN YÜKSEK PERFORMANS
+───────────────────────────────────────────────────────────────
+   En İyi Şehir          : {top_city}
+   Şehir Geliri          : {top_city_revenue:,.2f} TL
+   
+   En İyi Kategori       : {top_category}
+   Kategori Geliri       : {top_category_revenue:,.2f} TL
+
+═══════════════════════════════════════════════════════════════
+
+📈 ŞEHİRLERE GÖRE DAĞILIM
+───────────────────────────────────────────────────────────────
+"""
+        
+        # Şehir bazlı detaylar ekle
+        if 'sehir' in df.columns:
+            city_summary = df.groupby('sehir')['net_tutar'].agg(['sum', 'count']).sort_values('sum', ascending=False).head(10)
+            for city, row in city_summary.iterrows():
+                report += f"   {city:<20} : {row['sum']:>15,.2f} TL  ({row['count']:>5,} işlem)\n"
+        
+        report += f"""
+═══════════════════════════════════════════════════════════════
+
+📊 KATEGORİLERE GÖRE DAĞILIM
+───────────────────────────────────────────────────────────────
+"""
+        
+        # Kategori bazlı detaylar ekle
+        if 'kategori' in df.columns:
+            cat_summary = df.groupby('kategori')['net_tutar'].agg(['sum', 'count']).sort_values('sum', ascending=False).head(10)
+            for category, row in cat_summary.iterrows():
+                report += f"   {category:<20} : {row['sum']:>15,.2f} TL  ({row['count']:>5,} işlem)\n"
+        
+        report += f"""
+═══════════════════════════════════════════════════════════════
+
+Bu rapor MetriqAI Analytics tarafından otomatik oluşturulmuştur.
+📧 İletişim: insights@metriq.ai
+🌐 Web: metriq.ai
+
+© 2025 MetriqAI. Tüm hakları saklıdır.
+"""
+        
+        return report
+        
     except Exception as e:
-        st.error(f"⚠️ Processing Error: {str(e)}")
-else:
-    st.info("👆 Upload your data file to start analysis.")
+        return f"HATA: Rapor oluşturulamadı.\nDetay: {str(e)}"
 
-# --- Footer ---
-render_footer()
+
+def create_excel_report(df):
+    """
+    Excel formatında rapor oluştur
+    """
+    from io import BytesIO
+    
+    output = BytesIO()
+    
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Ana veri
+        df.to_excel(writer, sheet_name='Ana Veri', index=False)
+        
+        # Şehir özeti
+        if 'sehir' in df.columns:
+            city_summary = df.groupby('sehir')['net_tutar'].agg(['sum', 'count', 'mean']).round(2)
+            city_summary.columns = ['Toplam Gelir', 'İşlem Sayısı', 'Ortalama']
+            city_summary.to_excel(writer, sheet_name='Şehir Özeti')
+        
+        # Günlük özet
+        daily_summary = df.groupby('tarih')['net_tutar'].agg(['sum', 'count', 'mean']).round(2)
+        daily_summary.columns = ['Toplam Gelir', 'İşlem Sayısı', 'Ortalama']
+        daily_summary.to_excel(writer, sheet_name='Günlük Özet')
+        
+        # Kategori özeti
+        if 'kategori' in df.columns:
+            cat_summary = df.groupby('kategori')['net_tutar'].agg(['sum', 'count', 'mean']).round(2)
+            cat_summary.columns = ['Toplam Gelir', 'İşlem Sayısı', 'Ortalama']
+            cat_summary.to_excel(writer, sheet_name='Kategori Özeti')
+    
+    output.seek(0)
+    return output
+
+
+# Ana app.py dosyanızda bu şekilde kullanın:
+
+st.markdown("## 📥 Rapor İndir")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    # TXT Raporu
+    if st.button("📄 Metin Raporu İndir", use_container_width=True):
+        try:
+            report_text = generate_summary_report(df)
+            
+            st.download_button(
+                label="💾 Raporu Kaydet (.txt)",
+                data=report_text,
+                file_name=f"metriqAI_rapor_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+            
+            # Önizleme göster
+            with st.expander("📋 Rapor Önizleme"):
+                st.text(report_text)
+                
+        except Exception as e:
+            st.error(f"❌ Rapor oluşturma hatası: {str(e)}")
+
+with col2:
+    # Excel Raporu
+    if st.button("📊 Excel Raporu İndir", use_container_width=True):
+        try:
+            excel_data = create_excel_report(df)
+            
+            st.download_button(
+                label="💾 Excel'i Kaydet (.xlsx)",
+                data=excel_data,
+                file_name=f"metriqAI_rapor_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+            
+            st.success("✅ Excel raporu hazır!")
+            
+        except Exception as e:
+            st.error(f"❌ Excel oluşturma hatası: {str(e)}")pip install openpyxl

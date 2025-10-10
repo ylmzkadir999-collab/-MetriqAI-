@@ -1,2 +1,2 @@
-# -MetriqAI-
-AI-powered data analytics and reporting dashboard.”
+# Metriq.AI-
+AI business intelligence

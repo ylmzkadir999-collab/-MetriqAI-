@@ -1,6 +1,6 @@
 import streamlit as st
 from data_analysis import SalesAnalyzer
-pandas>=2.0.0
+pandas=2.0.0
 numpy>=1.24.0
 matplotlib>=3.7.0
 plotly>=5.17.0

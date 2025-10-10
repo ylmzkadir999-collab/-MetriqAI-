@@ -1,6 +1,4 @@
 """app.py - MetriqAI Ana Uygulama (V2.0)"""
-
-
 import streamlit as st
 import os
 import glob
@@ -10,12 +8,12 @@ import pandas as pd
 import numpy as np # np import'u eklendi
 
 # Modül importları
-from data_analysis import SalesAnalyzer
+from data_analysis import salesanalyzer
 from reporting import (
     generate_graphs, ai_summary, build_pdf,
     build_docx, build_ppt, save_excel, OPENAI_API_KEY
 )
-from config import APP_NAME, PACKAGES
+from config import app_name, PACKAGES
 from ui_components import (
     load_custom_css, render_hero, render_package_selector,
     render_team_section, simulate_processing, render_footer
@@ -56,10 +54,9 @@ render_team_section()
 
 # İletişim bilgileri
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 📞 Contact")
 st.sidebar.markdown("📧 insights@metriq.ai")
 st.sidebar.markdown("🌐 metriq.ai")
-st.sidebar.markdown("📞 +90 XXX XXX XXXX")
+st.sidebar.markdown("📞 +90 5439613694")
 
 # -----------------------------------------------------------
 

@@ -1,14 +1,22 @@
 import streamlit as st
 from data_analysis import SalesAnalyzer
-pandas=2.0.0
-numpy>=1.24.0
-matplotlib>=3.7.0
-plotly>=5.17.0
-python-dotenv>=1.0.0
-openai>=1.0.0
-reportlab>=4.0.0
-python-docx>=0.8.11
-python-pptx>=0.6.21
-openpyxl>=3.1.0
-Pillow>=10.0.0/ (repo kökü)
-import streamlit as st
+
+st.set_page_config(page_title="Metriq.AI", page_icon="⚡", layout="wide")
+
+st.title("⚡ Metriq.AI Dashboard")
+st.write("Upload your Excel or CSV file to begin analysis.")
+
+uploaded_file = st.file_uploader("📂 Upload File", type=["xlsx", "csv"])
+
+if uploaded_file:
+    st.success("File uploaded successfully!")
+
+    # Örnek kullanım - gerçek analiz fonksiyonu burada çağrılacak
+    st.write("Analyzing data with SalesAnalyzer...")
+    analyzer = SalesAnalyzer.load_data(uploaded_file)
+    kpis = analyzer.compute_kpis()
+    
+    st.metric("💰 Total Revenue", f"{kpis['total']:,.0f} TL")
+    st.metric("📊 Daily Average", f"{kpis['avg']:,.0f} TL")
+else:
+    st.info("Please upload a file to start.")

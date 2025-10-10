@@ -91,15 +91,18 @@ TEAM_MEMBERS = [
     }
 ]
 
+
+
 TURKEY_CITIES = {
-    "Istanbul": {"lat": 41.0082, "lon": 28.9784},
-    "Ankara": {"lat": 39.9334, "lon": 32.8597},
-    "Izmir": {"lat": 38.4237, "lon": 27.1428},
-    "Bursa": {"lat": 40.1826, "lon": 29.0665},
-    "Antalya": {"lat": 36.8969, "lon": 30.7133},
-    "Adana": {"lat": 37.0000, "lon": 35.3213},
-    "Gaziantep": {"lat": 37.0662, "lon": 37.3833},
-    "Konya": {"lat": 37.8746, "lon": 32.4932},
-    "Mersin": {"lat": 36.8121, "lon": 34.6415},
-    "Kayseri": {"lat": 38.7312, "lon": 35.4787}
+    'İstanbul': {'lat': 41.0082, 'lon': 28.9784},
+    'Ankara': {'lat': 39.9334, 'lon': 32.8597},
+    'İzmir': {'lat': 38.4237, 'lon': 27.1428},
+    'Bursa': {'lat': 40.1826, 'lon': 29.0665},
+    'Antalya': {'lat': 36.8969, 'lon': 30.7133},
+    'Adana': {'lat': 37.0000, 'lon': 35.3213},
+    'Konya': {'lat': 37.8746, 'lon': 32.4932},
+    'Gaziantep': {'lat': 37.0662, 'lon': 37.3833},
+    'Kayseri': {'lat': 38.7312, 'lon': 35.4787},
+    'Mersin': {'lat': 36.8121, 'lon': 34.6415},
+    # Diğer şehirleri ekleyin
 }

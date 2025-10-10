@@ -1,6 +1,6 @@
-<app.py içeriği buraya yerleşecek>
 import warnings
 import sys
+import streamlit as st
 
 # Streamlit ve frontend kaynaklı gereksiz uyarıları sustur
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -14,3 +14,17 @@ def silence_streamlit_exceptions(exc_type, exc_value, traceback):
     return False
 
 sys.excepthook = silence_streamlit_exceptions
+
+
+# --- Geçici kurtarma ekranı ---
+st.set_page_config(page_title="metriq.AI - Recovery Mode", page_icon="⚡")
+
+st.markdown("""
+# ⚙️ metriq.AI Safe Mode
+Merhaba kanki 😎  
+Uygulama şu anda **sessiz modda (crash korumalı)** çalışıyor.
+
+Eğer ana kodları geri yüklemek istiyorsan:
+1️⃣ `app.py` dosyasına asıl metriqAI kodlarını tekrar yapıştır.  
+2️⃣ Sonra Streamlit’i yeniden başlat (`Rerun` tuşuna bas).  
+""")

@@ -1,0 +1,1 @@
+<config.py içeriği buraya yerleşecek>

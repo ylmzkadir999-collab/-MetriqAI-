@@ -63,7 +63,7 @@ def create_turkey_heatmap(df):
         # Türkiye'ye odaklan
         fig.update_geos(
             center=dict(lat=39.0, lon=35.0),
-            projection_scale=15,  # Zoom seviyesi
+            projection_scale=15,
             visible=True,
             resolution=50,
             showcountries=True,
@@ -76,7 +76,7 @@ def create_turkey_heatmap(df):
             oceancolor="rgba(20,20,40,1)",
             showlakes=True,
             lakecolor="rgba(20,20,40,1)"
-        )
+        )  # ← BU PARANTEZ EKSİKTİ! 
         
         fig.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
@@ -101,6 +101,7 @@ def create_world_map(df):
     try:
         # Ülke sütunu kontrolü
         if 'ulke' not in df.columns:
+            df = df.copy()  # ← BU ÖNEMLİ! df'yi kopyala
             df['ulke'] = 'Turkey'
         
         if 'net_tutar' not in df.columns:
@@ -120,17 +121,16 @@ def create_world_map(df):
             'United States': 'USA',
             'Germany': 'DEU',
             'Almanya': 'DEU'
-            # Diğer ülkeleri ekleyin
         }
         
         country_revenue['country_code'] = country_revenue['country'].map(
-            lambda x: country_mapping.get(x, x)
+            lambda x: country_mapping.get(x, 'TUR')
         )
         
         fig = px.choropleth(
             country_revenue,
             locations='country_code',
-            locationmode='ISO-3',  # ISO-3 ülke kodları
+            locationmode='ISO-3',
             color='revenue',
             hover_name='country',
             hover_data={'revenue': ':,.0f TL', 'country_code': False},

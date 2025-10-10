@@ -1,4 +1,4 @@
-MetriqAI — Single-file Streamlit App (v2.0 Clean)
+# MetriqAI - Single-file Streamlit App (v2.0 Clean) 
 
 -- coding: utf-8 --
 

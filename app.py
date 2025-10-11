@@ -9,7 +9,7 @@ plotly
 kaleido
 openai
 anthropic
- from raporter import) 
+ from raporter import (
     generate_graphs,
     ai_summary,
     build_pdf,

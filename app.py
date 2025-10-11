@@ -10,7 +10,7 @@ user_package = st.sidebar.selectbox(
     "Paket Seçin (Demo)",
     ['basic', 'pro', 'premium'],
     index=2  # Default: premium
-) summary=) 
+) summary = ai_summary(analyzer.get_kpi_text()) 
 analyzer = SalesAnalyzer.load_data(uploaded_file)
 df = analyzer.df  # 
 df = analyzer.df

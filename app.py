@@ -1,5 +1,14 @@
 
-pip install reportlab
+streamlit
+pandas
+numpy
+reportlab
+python-pptx
+openpyxl
+plotly
+kaleido
+openai
+anthropic
 pip install python-pptx
 pip install openpyxl
 pip install plotly

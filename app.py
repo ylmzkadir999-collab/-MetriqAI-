@@ -16,7 +16,6 @@ df = analyzer.df  #
 df = analyzer.df
     'daily_average': df.groupby('tarih')['net_tutar'].sum().mean(),
     'transactions': len(df)
-}
 report = create_report(summary)  #
 st.sidebar.markdown(f"""
 ### Paket Özellikleri

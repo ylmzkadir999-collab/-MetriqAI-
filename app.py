@@ -12,7 +12,8 @@ user_package = st.sidebar.selectbox(
     index=2  # Default: premium
 )
 summary = {
-    'total_revenue': df['net_tutar'].sum(),
+    analyzer = SalesAnalyzer.load_data(uploaded_file)
+df = analyzer.df  #
     'daily_average': df.groupby('tarih')['net_tutar'].sum().mean(),
     'transactions': len(df)
 }

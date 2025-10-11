@@ -24,7 +24,6 @@ user_package = st.sidebar.selectbox(
     index=2  # Default: premium
 )
 
-)
  
 )
 

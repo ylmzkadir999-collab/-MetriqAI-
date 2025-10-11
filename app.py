@@ -1,21 +1,29 @@
 # app.py
-streamlit
-pandas
-numpy
-reportlab
-python-pptx
-openpyxl
-plotly
-kaleido
-openai
-anthropic
-   from reporting import (
+import streamlit as st
+import pandas as pd
+from reporting import (
     generate_graphs,
     ai_summary,
     build_pdf,
     build_docx,
     build_ppt,
     save_excel
+)
+
+st.set_page_config(
+    page_title="MetriqAI Analytics",
+    page_icon="📊",
+    layout="wide"
+)
+
+# Sidebar - Paket seçimi
+st.sidebar.title("⚙️ Ayarlar")
+user_package = st.sidebar.selectbox(
+    "Paket Seçin (Demo)",
+    ['basic', 'pro', 'premium'],
+    index=2  # Default: premium
+)
+
 )
  
 )

@@ -1,333 +1,4 @@
-
-streamlit
-pandas
-numpy
-reportlab
-python-pptx
-openpyxl
-plotly
-kaleido
-openai
-anthropic
-
-# app.py - ULTIMATE EDITION
-import streamlit as st
-import pandas as pd
-import numpy as np
-from datetime import datetime
-from io import BytesIO
-import plotly.graph_objects as go
-import plotly.express as px
-
-# PDF için
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-
-# PowerPoint için
-from pptx import Presentation
-from pptx.util import Inches, Pt
-from pptx.enum.text import PP_ALIGN
-from pptx.dml.color import RGBColor
-
-# AI için (opsiyonel)
-import os
-
-
-def calculate_metrics(df):
-    """Tüm metrikleri hesapla"""
-    metrics = {}
-    
-    # Temel metrikler
-    metrics['total_revenue'] = df['net_tutar'].sum()
-    metrics['daily_average'] = df.groupby('tarih')['net_tutar'].sum().mean()
-    metrics['total_transactions'] = len(df)
-    metrics['avg_transaction'] = metrics['total_revenue'] / metrics['total_transactions']
-    
-    # Tarih aralığı
-    metrics['start_date'] = df['tarih'].min()
-    metrics['end_date'] = df['tarih'].max()
-    metrics['total_days'] = (df['tarih'].max() - df['tarih'].min()).days + 1
-    
-    # Haftalık büyüme
-    df_sorted = df.sort_values('tarih')
-    if len(df_sorted) >= 7:
-        last_week = df_sorted.tail(7)['net_tutar'].sum()
-        prev_week = df_sorted.iloc[-14:-7]['net_tutar'].sum() if len(df_sorted) >= 14 else last_week
-        metrics['wow_growth'] = ((last_week - prev_week) / prev_week * 100) if prev_week > 0 else 0
-    else:
-        metrics['wow_growth'] = 0
-    
-    # Şehir analizi
-    if 'sehir' in df.columns:
-        city_data = df.groupby('sehir')['net_tutar'].agg(['sum', 'count', 'mean'])
-        metrics['top_city'] = city_data['sum'].idxmax()
-        metrics['top_city_revenue'] = city_data['sum'].max()
-        metrics['city_count'] = len(city_data)
-        metrics['city_summary'] = city_data.sort_values('sum', ascending=False).head(10)
-    
-    # Kategori analizi
-    if 'kategori' in df.columns:
-        cat_data = df.groupby('kategori')['net_tutar'].agg(['sum', 'count', 'mean'])
-        metrics['top_category'] = cat_data['sum'].idxmax()
-        metrics['top_category_revenue'] = cat_data['sum'].max()
-        metrics['category_count'] = len(cat_data)
-        metrics['category_summary'] = cat_data.sort_values('sum', ascending=False).head(10)
-    
-    # Günlük trend
-    metrics['daily_trend'] = df.groupby('tarih')['net_tutar'].sum().sort_index()
-    
-    # En iyi ve en kötü günler
-    daily_revenue = df.groupby('tarih')['net_tutar'].sum()
-    metrics['best_day'] = daily_revenue.idxmax()
-    metrics['best_day_revenue'] = daily_revenue.max()
-    metrics['worst_day'] = daily_revenue.idxmin()
-    metrics['worst_day_revenue'] = daily_revenue.min()
-    
-    return metrics
-
-
-def generate_ai_insights(metrics, df):
-    """AI destekli içgörüler (Claude API kullanarak)"""
-    
-    insights = {
-        'summary': "",
-        'recommendations': [],
-        'risks': [],
-        'opportunities': []
-    }
-    
-    # Performans değerlendirmesi
-    wow_growth = metrics['wow_growth']
-    if wow_growth > 20:
-        performance = "mükemmel"
-        emoji = "🚀"
-    elif wow_growth > 10:
-        performance = "çok iyi"
-        emoji = "🎉"
-    elif wow_growth > 0:
-        performance = "iyi"
-        emoji = "✅"
-    else:
-        performance = "geliştirilmeli"
-        emoji = "📈"
-    
-    insights['summary'] = f"{emoji} Haftalık büyüme %{wow_growth:.1f} - Performans {performance}!"
-    
-    # Öneriler
-    if metrics.get('city_count', 0) < 3:
-        insights['risks'].append("⚠️ Gelir tek veya az sayıda bölgeye bağımlı - Coğrafi çeşitlendirme yapılmalı")
-    else:
-        insights['opportunities'].append("✅ Dengeli coğrafi dağılım mevcut")
-    
-    if wow_growth < 0:
-        insights['recommendations'].append("📉 Haftalık düşüş tespit edildi - Pazarlama stratejilerini gözden geçirin")
-        insights['recommendations'].append("💡 En yüksek performanslı dönemleri analiz edin ve tekrarlayın")
-    else:
-        insights['recommendations'].append("📊 Mevcut büyüme trendini korumak için başarılı stratejilere odaklanın")
-    
-    # Gelir dağılımı analizi
-    avg_transaction = metrics['avg_transaction']
-    if avg_transaction > 1000:
-        insights['opportunities'].append(f"💰 Yüksek işlem ortalaması ({avg_transaction:,.0f} TL) - Premium müşteri segmenti güçlü")
-    
-    # Kategori analizi
-    if metrics.get('category_count', 0) > 0:
-        insights['recommendations'].append(f"🎯 En iyi kategori: {metrics['top_category']} - Bu kategoriye yatırım artırılabilir")
-    
-    # Risk analizi
-    best_worst_ratio = metrics['best_day_revenue'] / metrics['worst_day_revenue'] if metrics['worst_day_revenue'] > 0 else 1
-    if best_worst_ratio > 3:
-        insights['risks'].append(f"⚠️ Günlük gelir dalgalanması yüksek (x{best_worst_ratio:.1f}) - İstikrar sağlanmalı")
-    
-    insights['recommendations'].append("📱 Müşteri sadakat programları oluşturulabilir")
-    insights['opportunities'].append("🌐 Dijital pazarlama kanalları güçlendirilebilir")
-    
-    return insights
-
-
-def create_chart_image(df, chart_type='daily'):
-    """Grafik oluştur ve BytesIO olarak döndür"""
-    fig = None
-    
-    if chart_type == 'daily':
-        daily_revenue = df.groupby('tarih')['net_tutar'].sum().reset_index()
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=daily_revenue['tarih'],
-            y=daily_revenue['net_tutar'],
-            mode='lines+markers',
-            name='Günlük Gelir',
-            line=dict(color='#00BFFF', width=3),
-            fill='tozeroy'
-        ))
-        fig.update_layout(
-            title='Günlük Gelir Trendi',
-            xaxis_title='Tarih',
-            yaxis_title='Gelir (TL)',
-            height=400
-        )
-    
-    elif chart_type == 'city' and 'sehir' in df.columns:
-        city_revenue = df.groupby('sehir')['net_tutar'].sum().sort_values(ascending=False).head(10)
-        fig = go.Figure(data=[go.Bar(
-            x=city_revenue.index,
-            y=city_revenue.values,
-            marker_color='#4CAF50'
-        )])
-        fig.update_layout(
-            title='Şehirlere Göre Gelir',
-            xaxis_title='Şehir',
-            yaxis_title='Gelir (TL)',
-            height=400
-        )
-    
-    elif chart_type == 'category' and 'kategori' in df.columns:
-        cat_revenue = df.groupby('kategori')['net_tutar'].sum().sort_values(ascending=False).head(10)
-        fig = go.Figure(data=[go.Pie(
-            labels=cat_revenue.index,
-            values=cat_revenue.values,
-            hole=0.3
-        )])
-        fig.update_layout(
-            title='Kategorilere Göre Gelir Dağılımı',
-            height=400
-        )
-    
-    if fig:
-        img_bytes = BytesIO()
-        fig.write_image(img_bytes, format='png', width=800, height=400)
-        img_bytes.seek(0)
-        return img_bytes
-    
-    return None
-
-
-def create_professional_pdf(df, metrics, insights, package='premium'):
-    """Profesyonel PDF raporu"""
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    elements = []
-    
-    styles = getSampleStyleSheet()
-    
-    # Özel stiller
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=28,
-        textColor=colors.HexColor('#00BFFF'),
-        spaceAfter=30,
-        alignment=TA_CENTER,
-        fontName='Helvetica-Bold'
-    )
-    
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=18,
-        textColor=colors.HexColor('#00BFFF'),
-        spaceAfter=12,
-        spaceBefore=20,
-        fontName='Helvetica-Bold'
-    )
-    
-    # Başlık
-    elements.append(Paragraph("📊 MetriqAI Analytics", title_style))
-    elements.append(Paragraph(f"Kapsamlı İş Analizi Raporu - {package.upper()}", styles['Heading3']))
-    elements.append(Spacer(1, 30))
-    
-    # Rapor bilgileri
-    elements.append(Paragraph(f"<b>📅 Rapor Tarihi:</b> {datetime.now().strftime('%d.%m.%Y %H:%M')}", styles['Normal']))
-    elements.append(Paragraph(f"<b>📊 Veri Dönemi:</b> {metrics['start_date']} - {metrics['end_date']} ({metrics['total_days']} gün)", styles['Normal']))
-    elements.append(Spacer(1, 30))
-    
-    # Executive Summary
-    elements.append(Paragraph("📋 Yönetici Özeti", heading_style))
-    elements.append(Paragraph(insights['summary'], styles['Normal']))
-    elements.append(Spacer(1, 20))
-    
-    # Temel Metrikler Tablosu
-    elements.append(Paragraph("💰 Temel Performans Metrikleri", heading_style))
-    
-    metrics_data = [
-        ['Metrik', 'Değer', 'Durum'],
-        ['Toplam Gelir', f"{metrics['total_revenue']:,.2f} TL", '🟢'],
-        ['Günlük Ortalama', f"{metrics['daily_average']:,.2f} TL", '🟢'],
-        ['Haftalık Büyüme', f"{metrics['wow_growth']:,.1f}%", '🟢' if metrics['wow_growth'] > 0 else '🔴'],
-        ['Toplam İşlem', f"{metrics['total_transactions']:,}", '🟢'],
-        ['İşlem Başı Ort.', f"{metrics['avg_transaction']:,.2f} TL", '🟢'],
-        ['En İyi Gün', f"{metrics['best_day']} ({metrics['best_day_revenue']:,.0f} TL)", '🏆'],
-    ]
-    
-    metrics_table = Table(metrics_data, colWidths=[2.5*inch, 2.5*inch, 1*inch])
-    metrics_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#00BFFF')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
-    ]))
-    
-    elements.append(metrics_table)
-    elements.append(Spacer(1, 30))
-    
-    # Şehir Analizi
-    if 'city_summary' in metrics:
-        elements.append(PageBreak())
-        elements.append(Paragraph("🏙️ Şehir Bazlı Detaylı Analiz", heading_style))
-        
-        city_data = [['Şehir', 'Toplam Gelir', 'İşlem Sayısı', 'Ortalama']]
-        for city, row in metrics['city_summary'].iterrows():
-            city_data.append([
-                city,
-                f"{row['sum']:,.2f} TL",
-                f"{int(row['count']):,}",
-                f"{row['mean']:,.2f} TL"
-            ])
-        
-        city_table = Table(city_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
-        city_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4CAF50')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
-        ]))
-        
-        elements.append(city_table)
-        elements.append(Spacer(1, 20))
-    
-    # Kategori Analizi
-    if 'category_summary' in metrics:
-        elements.append(PageBreak())
-        elements.append(Paragraph("📦 Kategori Bazlı Detaylı Analiz", heading_style))
-        
-        cat_data = [['Kategori', 'Toplam Gelir', 'İşlem Sayısı', 'Ortalama']]
-        for category, row in metrics['category_summary'].iterrows():
-            cat_data.append([
-                category,
-                f"{row['sum']:,.2f} TL",
-                f"{int(row['count']):,}",
-                f"{row['mean']:,.2f} TL"
-            ])
-        
-        cat_table = Table(cat_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
-        cat_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FF6B6B')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
+          ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey])
         ]))
         
         elements.append(cat_table)
@@ -939,7 +610,56 @@ Toplam İşlem          : {metrics['total_transactions']:,}
             
             if st.button(f"⬆️ {info['next']} Pakete Geç", use_container_width=True):
                 st.info("💡 Paket yükseltme için lütfen sales@metriq.ai ile iletişime geçin!")
-    
+    # Sheet 5: Kategori Analizi
+        if 'kategori' in df.columns:
+            cat_detailed = df.groupby('kategori').agg({
+                'net_tutar': ['sum', 'count', 'mean', 'std'],
+                'tarih': ['min', 'max']
+            }).round(2)
+            cat_detailed.columns = ['Toplam Gelir', 'İşlem', 'Ortalama', 'Std Sapma', 'İlk Tarih', 'Son Tarih']
+            cat_detailed = cat_detailed.sort_values('Toplam Gelir', ascending=False)
+            cat_detailed.to_excel(writer, sheet_name='Kategori Detay')
+
+        # Sheet 6: AI İçgörüler
+        ai_data = pd.DataFrame({
+            'Tip': (['Özet'] +
+                    ['Öneri'] * len(insights['recommendations']) +
+                    ['Fırsat'] * len(insights['opportunities']) +
+                    ['Risk'] * len(insights['risks'])),
+            'İçgörü': ([insights['summary']] +
+                       insights['recommendations'] +
+                       insights['opportunities'] +
+                       insights['risks'])
+        })
+        ai_data.to_excel(writer, sheet_name='AI İçgörüler', index=False)
+
+        # Sheet 7: Trend Analizi
+        if len(metrics['daily_trend']) > 7:
+            trend_df = pd.DataFrame({
+                'Tarih': metrics['daily_trend'].index,
+                'Gelir': metrics['daily_trend'].values,
+                '7 Günlük Ortalama': metrics['daily_trend'].rolling(window=7).mean().values,
+                '30 Günlük Ortalama': metrics['daily_trend'].rolling(window=30).mean().values
+                if len(metrics['daily_trend']) > 30 else None
+            })
+            trend_df.to_excel(writer, sheet_name='Trend Analizi', index=False)
+
+        # Sheet 8: Periyodik Analiz
+        df_copy = df.copy()
+        df_copy['Gün Adı'] = df_copy['tarih'].dt.day_name()
+        df_copy['Hafta'] = df_copy['tarih'].dt.isocalendar().week
+        df_copy['Ay'] = df_copy['tarih'].dt.month
+
+        weekly_summary = df_copy.groupby('Hafta')['net_tutar'].agg(['sum', 'count', 'mean']).round(2)
+        weekly_summary.columns = ['Toplam', 'İşlem', 'Ortalama']
+        weekly_summary.to_excel(writer, sheet_name='Haftalık Analiz')
+
+        day_summary = df_copy.groupby('Gün Adı')['net_tutar'].agg(['sum', 'count', 'mean']).round(2)
+        day_summary.columns = ['Toplam', 'İşlem', 'Ortalama']
+        day_summary.to_excel(writer, sheet_name='Günlere Göre Analiz')
+
+    output.seek(0)
+    return output
     # İstatistikler
     st.markdown("---")
     st.markdown("### 📊 Rapor İstatistikleri")

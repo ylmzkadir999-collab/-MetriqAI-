@@ -25,7 +25,6 @@ user_package = st.sidebar.selectbox(
 )
 
  
-)
 
 # Sayfa ayarları
 st.set_page_config(

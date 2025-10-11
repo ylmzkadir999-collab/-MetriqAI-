@@ -1,8 +1,7 @@
 # app.py
 import streamlit as st
 import pandas as pd
-from reports import show_download_section
-
+from reports import show_download_section#
 st.set_page_config(page_title="MetriqAI Analytics", page_icon="📊", layout="wide")
 
 # Sidebar - Paket seçimi (Demo için)

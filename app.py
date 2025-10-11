@@ -1,3 +1,44 @@
+import os, sys, re, traceback
+
+def auto_fix_imports():
+    """MetriqAI Oto Düzeltici - eksik modül, hatalı import veya kod satırını düzeltir."""
+    target_files = [f for f in os.listdir('.') if f.endswith('.py')]
+    fixed = []
+    
+    for f in target_files:
+        try:
+            with open(f, 'r', encoding='utf-8') as file:
+                lines = file.readlines()
+            
+            new_lines = []
+            for line in lines:
+                # Gereksiz veya hatalı karakterleri temizle
+                if '├' in line or '─' in line or '‘' in line or '’' in line:
+                    continue
+                # Pandas veya numpy gibi hatalı versiyon satırlarını temizle
+                if re.match(r'^[a-zA-Z_]+=+\d', line.strip()):
+                    continue
+                new_lines.append(line)
+            
+            # Gereksiz boşlukları düzelt
+            cleaned = ''.join(new_lines).replace('\r', '').replace('\t', '    ')
+            with open(f, 'w', encoding='utf-8') as file:
+                file.write(cleaned)
+            
+            fixed.append(f)
+        except Exception:
+            traceback.print_exc()
+            continue
+    
+    if fixed:
+        print(f"[MetriqAI AutoFix] Düzeltildi: {', '.join(fixed)} ✅")
+    else:
+        print("[MetriqAI AutoFix] Hata bulunamadı veya zaten temiz.")
+        
+try:
+    auto_fix_imports()
+except Exception as e:
+    print(f"[MetriqAI AutoFix] Çalışmadı: {e}")
 # app.py
 import streamlit as st
 import pandas as pd

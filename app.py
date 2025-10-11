@@ -1,7 +1,15 @@
 # app.py
-import streamlit as st
-import pandas as pd
-from reporting import (
+streamlit
+pandas
+numpy
+reportlab
+python-pptx
+openpyxl
+plotly
+kaleido
+openai
+anthropic
+
     generate_graphs,
     ai_summary,
     build_pdf,

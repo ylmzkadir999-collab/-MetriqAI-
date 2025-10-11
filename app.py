@@ -592,14 +592,14 @@ def create_excel_advanced(df, metrics, insights):
             city_detailed.to_excel(writer, sheet_name='Şehir Detay')
         
         # Sheet 5: Kategori Analizi
-        if 'kategori' in df.columns:
-            cat_detailed = df.groupby('kategori').agg({
-                'net_tutar': ['sum', 'count', 'mean', 'st'net_tutar': ['sum', 'count', 'mean', 'std'],
-                'tarih': ['min', 'max']
-            }).round(2)
-            cat_detailed.columns = ['Toplam Gelir', 'İşlem', 'Ortalama', 'Std Sapma', 'İlk Tarih', 'Son Tarih']
-            cat_detailed = cat_detailed.sort_values('Toplam Gelir', ascending=False)
-            cat_detailed.to_excel(writer, sheet_name='Kategori Detay')
+if 'kategori' in df.columns:
+    cat_detailed = df.groupby('kategori').agg({
+        'net_tutar': ['sum', 'count', 'mean', 'std'],
+        'tarih': ['min', 'max']
+    }).round(2)
+    cat_detailed.columns = ['Toplam Gelir', 'İşlem', 'Ortalama', 'Std Sapma', 'İlk Tarih', 'Son Tarih']
+    cat_detailed = cat_detailed.sort_values('Toplam Gelir', ascending=False)
+    cat_detailed.to_excel(writer, sheet_name='Kategori Detay')
         
         # Sheet 6: AI İçgörüler
         ai_data = pd.DataFrame({

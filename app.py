@@ -9,8 +9,7 @@ plotly
 kaleido
 openai
 anthropic
-
-    generate_graphs,
+ generate_graphs, 
     ai_summary,
     build_pdf,
     build_docx,

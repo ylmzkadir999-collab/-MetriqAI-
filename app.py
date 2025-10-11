@@ -9,19 +9,15 @@ plotly
 kaleido
 openai
 anthropic
- from raporter import (
+   from reporting import (
     generate_graphs,
     ai_summary,
     build_pdf,
     build_docx,
     build_ppt,
     save_excel
-) 
-    ai_summary,
-    build_pdf,
-    build_docx,
-    build_ppt,
-    save_excel
+)
+ 
 )
 
 # Sayfa ayarları

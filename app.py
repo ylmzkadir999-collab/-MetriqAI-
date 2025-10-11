@@ -9,12 +9,7 @@ plotly
 kaleido
 openai
 anthropic
-pip install python-pptx
-pip install openpyxl
-pip install plotly
-pip install kaleido
-pip install openai
-pip install anthropic
+
 # app.py - ULTIMATE EDITION
 import streamlit as st
 import pandas as pd

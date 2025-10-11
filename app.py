@@ -12,7 +12,7 @@ user_package = st.sidebar.selectbox(
     index=2  # Default: premium
 )
 summary = {
-    analyzer ¦SalesAnalyzer.load_data(uploaded_file)
+    analyzer :SalesAnalyzer.load_data(uploaded_file)
 df = analyzer.df
     'daily_average': df.groupby('tarih')['net_tutar'].sum().mean(),
     'transactions': len(df)
